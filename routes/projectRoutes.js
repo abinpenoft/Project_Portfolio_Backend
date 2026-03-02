@@ -18,6 +18,7 @@ const router = express.Router();
 
 // Public routes (must be defined before verifyToken)
 router.get('/public', getAllProjects);
+router.get('/public/:id', getProjectById);
 router.get('/public/year/:year', getProjectsByYear);
 router.get('/public/local-body/:id', getProjectsByLocalBody);
 router.get('/public/sector/:id', getProjectsBySector);

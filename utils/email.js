@@ -159,3 +159,31 @@ export const sendAdminEnquiryAlert = async (enquiry) => {
       </body></html>`,
   });
 };
+// ─────────────────────────────────────────────────────────────
+//  Contact / Enquiry — Admin Reply Email
+// ─────────────────────────────────────────────────────────────
+export const sendEnquiryReplyEmail = async ({ to, full_name, subject, replyMessage }) => {
+  const displaySubject = subject && subject !== 'N/A' ? subject : 'Your Enquiry';
+  await transporter.sendMail({
+    from: `"${APP_NAME}" <${MAIL_FROM}>`,
+    to,
+    subject: `[${APP_NAME}] Re: ${displaySubject}`,
+    html: `
+      <!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:0;">
+        <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+          <div style="background:#035194;padding:28px 32px;"><h1 style="color:#fff;margin:0;font-size:22px;">${APP_NAME}</h1></div>
+          <div style="padding:32px;">
+            <h2 style="color:#035194;margin-top:0;">Reply to Your Enquiry</h2>
+            <p>Hi <strong>${full_name}</strong>,</p>
+            <p>Thank you for contacting us. Here is our response to your enquiry:</p>
+            <div style="background:#f0f9ff;border-left:4px solid #035194;padding:20px;border-radius:4px;margin:20px 0;line-height:1.7;color:#333;">
+              ${replyMessage.replace(/\n/g, '<br>')}
+            </div>
+            <p style="color:#666;font-size:13px;">If you have any further questions, feel free to reach out to us again.</p>
+            <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
+            <p style="color:#999;font-size:12px;margin:0;">© ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
+          </div>
+        </div>
+      </body></html>`,
+  });
+};

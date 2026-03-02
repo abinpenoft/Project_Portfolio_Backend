@@ -7,6 +7,7 @@ import {
     updateEnquiryStatus,
     deleteEnquiry,
     sendSMS,
+    sendEmail,
     sendWhatsApp,
     sendVoice,
     getCommunications,
@@ -24,7 +25,8 @@ router.get('/:id', getEnquiryById);
 router.patch('/:id/status', updateEnquiryStatus);
 router.delete('/:id', deleteEnquiry);
 
-// ─── Communication Routes ──────────────────────────────────────
+// ─── Communication Routes ───────────────────────────────────────────
+router.post('/:id/send-email', sendEmail);
 router.post('/:id/send-sms', sendSMS);
 router.post('/:id/send-whatsapp', sendWhatsApp);
 router.post('/:id/send-voice', sendVoice);

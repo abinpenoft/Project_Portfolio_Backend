@@ -1,6 +1,6 @@
 import pool from '../configs/db.js';
 import { successResponse, errorResponse } from '../utils/helpers.js';
-import { sendEnquiryReceivedEmail, sendAdminEnquiryAlert } from '../utils/email.js';
+import { sendEnquiryReceivedEmail, sendAdminEnquiryAlert, sendEnquiryReplyEmail } from '../utils/email.js';
 import { sendBrevoSMS } from '../configs/sms.js';
 import { sendWhatsAppMessage, sendWhatsAppTemplate } from '../configs/whatsapp.js';
 import { sendVoiceMessage } from '../configs/voice.js';
@@ -214,6 +214,47 @@ export const sendSMS = async (req, res) => {
     } catch (err) {
         console.error('[sendSMS]', err);
         return errorResponse(res, err.message || 'Failed to send SMS.');
+    }
+};
+
+// ─────────────────────────────────────────────────────────────
+//  POST /api/contact/:id/send-email  — Admin: Reply via Email
+// ─────────────────────────────────────────────────────────────
+export const sendEmail = async (req, res) => {
+    const { message } = req.body;
+    const enquiryId = req.params.id;
+
+    if (!message?.trim()) {
+        return errorResponse(res, 'Message content is required.', 400);
+    }
+
+    try {
+        // Fetch enquiry details
+        const [[enquiry]] = await pool.query(
+            'SELECT full_name, email, subject FROM contact_enquiries WHERE id = ?',
+            [enquiryId]
+        );
+        if (!enquiry) return errorResponse(res, 'Enquiry not found.', 404);
+
+        // Send reply email via Brevo SMTP
+        await sendEnquiryReplyEmail({
+            to: enquiry.email,
+            full_name: enquiry.full_name,
+            subject: enquiry.subject,
+            replyMessage: message.trim(),
+        });
+
+        // Log communication
+        await pool.query(
+            `INSERT INTO enquiry_communications (enquiry_id, type, recipient, message, status)
+             VALUES (?, ?, ?, ?, ?)`,
+            [enquiryId, 'email', enquiry.email, message.trim(), 'sent']
+        ).catch(e => console.error('[Log Email]', e));
+
+        return successResponse(res, null, 'Email reply sent successfully.');
+    } catch (err) {
+        console.error('[sendEmail]', err);
+        return errorResponse(res, err.message || 'Failed to send email reply.');
     }
 };
 
