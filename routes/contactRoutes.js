@@ -12,6 +12,9 @@ import {
     sendVoice,
     getCommunications,
     bulkSend,
+    getEnquiryStats,
+    getEnquiryNotes,
+    addEnquiryNote,
 } from '../controllers/contactController.js';
 
 const router = Router();
@@ -39,5 +42,12 @@ import { getAutomations, upsertAutomation, deleteAutomation } from '../controlle
 router.get('/config/automations', getAutomations);
 router.post('/config/automations', upsertAutomation);
 router.delete('/config/automations/:id', deleteAutomation);
+
+// ─── Stats ─────────────────────────────────────────────────────
+router.get('/stats', getEnquiryStats);
+
+// ─── Notes ─────────────────────────────────────────────────────
+router.get('/:id/notes', getEnquiryNotes);
+router.post('/:id/notes', addEnquiryNote);
 
 export default router;

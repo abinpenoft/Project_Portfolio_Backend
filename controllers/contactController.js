@@ -606,3 +606,79 @@ export const deleteAutomation = async (req, res) => {
         return errorResponse(res, 'Failed to delete automation rule.');
     }
 };
+
+// ─────────────────────────────────────────────────────────────
+//  GET /api/contact/stats  — Admin: summary counts
+// ─────────────────────────────────────────────────────────────
+export const getEnquiryStats = async (req, res) => {
+    try {
+        const [[totals]] = await pool.query(
+            `SELECT
+                COUNT(*) AS total,
+                SUM(status = 'new')      AS new_count,
+                SUM(status = 'read')     AS read_count,
+                SUM(status = 'resolved') AS resolved_count
+             FROM contact_enquiries`
+        );
+
+        const [byCategory] = await pool.query(
+            `SELECT category, COUNT(*) AS count
+             FROM contact_enquiries
+             GROUP BY category
+             ORDER BY count DESC`
+        );
+
+        return successResponse(res, {
+            data: {
+                total: Number(totals.total),
+                new: Number(totals.new_count),
+                read: Number(totals.read_count),
+                resolved: Number(totals.resolved_count),
+                byCategory,
+            }
+        }, 'Stats fetched.');
+    } catch (err) {
+        console.error('[getEnquiryStats]', err);
+        return errorResponse(res, 'Failed to fetch stats.');
+    }
+};
+
+// ─────────────────────────────────────────────────────────────
+//  GET /api/contact/:id/notes  — Admin: get notes for enquiry
+// ─────────────────────────────────────────────────────────────
+export const getEnquiryNotes = async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            `SELECT * FROM enquiry_notes WHERE enquiry_id = ? ORDER BY created_at ASC`,
+            [req.params.id]
+        );
+        return successResponse(res, { data: rows }, 'Notes fetched.');
+    } catch (err) {
+        console.error('[getEnquiryNotes]', err);
+        return successResponse(res, { data: [] }, 'Notes fetched.');
+    }
+};
+
+// ─────────────────────────────────────────────────────────────
+//  POST /api/contact/:id/notes  — Admin: add a note
+// ─────────────────────────────────────────────────────────────
+export const addEnquiryNote = async (req, res) => {
+    const { note } = req.body;
+    if (!note?.trim()) return errorResponse(res, 'Note content is required.', 400);
+
+    try {
+        // Verify the enquiry exists
+        const [[enq]] = await pool.query('SELECT id FROM contact_enquiries WHERE id = ?', [req.params.id]);
+        if (!enq) return errorResponse(res, 'Enquiry not found.', 404);
+
+        const [result] = await pool.query(
+            'INSERT INTO enquiry_notes (enquiry_id, note) VALUES (?, ?)',
+            [req.params.id, note.trim()]
+        );
+        return successResponse(res, { id: result.insertId }, 'Note added.', 201);
+    } catch (err) {
+        console.error('[addEnquiryNote]', err);
+        return errorResponse(res, 'Failed to add note.');
+    }
+};
+

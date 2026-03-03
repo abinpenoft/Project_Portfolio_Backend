@@ -93,11 +93,16 @@ export const updateAchievement = async (req, res) => {
         const [[existing]] = await pool.query('SELECT * FROM achievements WHERE id = ?', [id]);
         if (!existing) return errorResponse(res, 'Achievement not found.', 404);
 
-        const iconUrl = req.file ? `/uploads/ente-nadu-icons/${req.file.filename}` : existing.icon_url;
+        let iconUrl = existing.icon_url;
+        if (req.file) {
+            iconUrl = `/uploads/ente-nadu-icons/${req.file.filename}`;
+        } else if (req.body.icon_url === null || req.body.icon_url === 'null') {
+            iconUrl = null;
+        }
 
         const [result] = await pool.query(
             'UPDATE achievements SET title = ?, description = ?, icon_url = ?, order_index = ? WHERE id = ?',
-            [title.trim(), description?.trim() || null, iconUrl, order_index ?? 0, id]
+            [title.trim(), description?.trim() || null, iconUrl, order_index ?? existing.order_index, id]
         );
         if (!result.affectedRows) return errorResponse(res, 'Achievement not found.', 404);
 

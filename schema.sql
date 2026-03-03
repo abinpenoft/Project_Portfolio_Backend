@@ -375,3 +375,42 @@ CREATE TABLE IF NOT EXISTS enquiry_automations (
         REFERENCES message_templates(id) ON DELETE CASCADE,
     UNIQUE KEY uk_category (category)
 );
+
+-- ─────────────────────────────────────────────────────────────
+--  TABLE: campaigns
+--  Outreach campaigns targeting enquiry audiences
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS campaigns (
+    id                  INT UNSIGNED    AUTO_INCREMENT PRIMARY KEY,
+    name                VARCHAR(255)    NOT NULL,
+    channel             ENUM('sms','whatsapp','email') NOT NULL,
+    status              ENUM('draft','running','completed','failed') NOT NULL DEFAULT 'draft',
+    target_category     VARCHAR(100)    DEFAULT NULL,
+    target_status       VARCHAR(50)     DEFAULT NULL,
+    target_panchayat_id INT UNSIGNED    DEFAULT NULL,
+    template_id         INT UNSIGNED    DEFAULT NULL,
+    message             TEXT            DEFAULT NULL,
+    scheduled_at        DATETIME        DEFAULT NULL,
+    sent_count          INT UNSIGNED    NOT NULL DEFAULT 0,
+    failed_count        INT UNSIGNED    NOT NULL DEFAULT 0,
+    total_count         INT UNSIGNED    NOT NULL DEFAULT 0,
+    notes               TEXT            DEFAULT NULL,
+    created_at          DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_campaign_template FOREIGN KEY (template_id) REFERENCES message_templates(id) ON DELETE SET NULL,
+    INDEX idx_camp_status  (status),
+    INDEX idx_camp_channel (channel)
+);
+
+-- ─────────────────────────────────────────────────────────────
+--  TABLE: enquiry_notes
+--  Internal admin notes attached to a specific enquiry
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS enquiry_notes (
+    id          INT UNSIGNED    AUTO_INCREMENT PRIMARY KEY,
+    enquiry_id  INT UNSIGNED    NOT NULL,
+    note        TEXT            NOT NULL,
+    created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_note_enquiry FOREIGN KEY (enquiry_id) REFERENCES contact_enquiries(id) ON DELETE CASCADE,
+    INDEX idx_note_enquiry (enquiry_id)
+);
