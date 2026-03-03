@@ -35,8 +35,16 @@ const PORT = process.env.PORT || 5000;
 // ─── Global Middleware ────────────────────────────────────────
 app.use(cors({
     origin: function (origin, callback) {
+        // Extract strictly the origin (e.g., scheme://domain:port) from the configured URLs
         const allowedOrigins = process.env.FRONTEND_URL
-            ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+            ? process.env.FRONTEND_URL.split(',').map(urlStr => {
+                try {
+                    return new URL(urlStr.trim()).origin;
+                } catch (e) {
+                    // Fallback if it's not a valid URL
+                    return urlStr.trim().replace(/\/+$/, '');
+                }
+            })
             : ['http://localhost:5173', 'http://localhost:3000'];
 
         if (!origin || allowedOrigins.includes(origin)) {
