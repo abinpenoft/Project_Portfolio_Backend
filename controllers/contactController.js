@@ -185,6 +185,30 @@ export const getEnquiries = async (req, res) => {
             [...params, limit, offset]
         );
 
+        // Fetch custom values if rows exist
+        if (rows.length > 0) {
+            const enquiryIds = rows.map(r => r.id);
+            const [customValues] = await pool.query(
+                `SELECT cv.enquiry_id, cv.field_value, f.field_label, f.id as field_id
+                 FROM enquiry_custom_values cv
+                 JOIN enquiry_custom_fields f ON f.id = cv.field_id
+                 WHERE cv.enquiry_id IN (?) AND f.is_active = 1`,
+                [enquiryIds]
+            );
+
+            // Group values by enquiry_id
+            const valueMap = {};
+            customValues.forEach(cv => {
+                if (!valueMap[cv.enquiry_id]) valueMap[cv.enquiry_id] = {};
+                valueMap[cv.enquiry_id][cv.field_label] = cv.field_value;
+            });
+
+            // Map values back to rows
+            rows.forEach(r => {
+                r.custom_fields = valueMap[r.id] || {};
+            });
+        }
+
         return successResponse(res, {
             data: rows,
             pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
@@ -837,3 +861,67 @@ export const addEnquiryNote = async (req, res) => {
     }
 };
 
+// ─────────────────────────────────────────────────────────────
+//  CUSTOM FIELDS MANAGEMENT
+// ─────────────────────────────────────────────────────────────
+
+// GET /api/contact/config/custom-fields
+export const getCustomFields = async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            'SELECT * FROM enquiry_custom_fields WHERE is_active = 1 ORDER BY created_at ASC'
+        );
+        return successResponse(res, { data: rows }, 'Custom fields fetched.');
+    } catch (err) {
+        console.error('[getCustomFields]', err);
+        return errorResponse(res, 'Failed to fetch custom fields.');
+    }
+};
+
+// POST /api/contact/config/custom-fields
+export const createCustomField = async (req, res) => {
+    const { field_label, field_type, field_options } = req.body;
+    if (!field_label?.trim()) return errorResponse(res, 'Field label is required.', 400);
+
+    try {
+        const [result] = await pool.query(
+            'INSERT INTO enquiry_custom_fields (field_label, field_type, field_options) VALUES (?, ?, ?)',
+            [field_label.trim(), field_type || 'text', JSON.stringify(field_options || [])]
+        );
+        return successResponse(res, { id: result.insertId }, 'Custom field created.', 201);
+    } catch (err) {
+        console.error('[createCustomField]', err);
+        return errorResponse(res, 'Failed to create custom field.');
+    }
+};
+
+// DELETE /api/contact/config/custom-fields/:id
+export const deleteCustomField = async (req, res) => {
+    try {
+        // Soft delete
+        await pool.query('UPDATE enquiry_custom_fields SET is_active = 0 WHERE id = ?', [req.params.id]);
+        return successResponse(res, null, 'Custom field removed.');
+    } catch (err) {
+        console.error('[deleteCustomField]', err);
+        return errorResponse(res, 'Failed to remove custom field.');
+    }
+};
+
+// POST /api/contact/:id/custom-values
+export const updateEnquiryCustomValue = async (req, res) => {
+    const { field_id, field_value } = req.body;
+    if (!field_id) return errorResponse(res, 'field_id is required.', 400);
+
+    try {
+        await pool.query(
+            `INSERT INTO enquiry_custom_values (enquiry_id, field_id, field_value)
+             VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE field_value = VALUES(field_value)`,
+            [req.params.id, field_id, field_value]
+        );
+        return successResponse(res, null, 'Field value updated.');
+    } catch (err) {
+        console.error('[updateEnquiryCustomValue]', err);
+        return errorResponse(res, 'Failed to update field value.');
+    }
+};

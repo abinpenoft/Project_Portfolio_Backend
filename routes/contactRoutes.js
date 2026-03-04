@@ -19,6 +19,10 @@ import {
     getAutomations,
     upsertAutomation,
     deleteAutomation,
+    getCustomFields,
+    createCustomField,
+    deleteCustomField,
+    updateEnquiryCustomValue,
 } from '../controllers/contactController.js';
 
 const router = Router();
@@ -35,10 +39,14 @@ router.post('/bulk/send', bulkSend);
 router.get('/stats', getEnquiryStats);
 router.get('/constituent', getConstituentProfile);
 
-// ─── Automation Management (MUST be BEFORE /:id wildcard) ──────
 router.get('/config/automations', getAutomations);
 router.post('/config/automations', upsertAutomation);
 router.delete('/config/automations/:id', deleteAutomation);
+
+// ─── Custom Fields Configuration ──────────────────────────────
+router.get('/config/custom-fields', getCustomFields);
+router.post('/config/custom-fields', createCustomField);
+router.delete('/config/custom-fields/:id', deleteCustomField);
 
 // ─── Wildcard /:id routes (must come AFTER all named segment routes) ──
 router.get('/:id', getEnquiryById);
@@ -52,8 +60,9 @@ router.post('/:id/send-whatsapp', sendWhatsApp);
 router.post('/:id/send-voice', sendVoice);
 router.get('/:id/communications', getCommunications);
 
-// ─── Notes ─────────────────────────────────────────────────────
+// ─── Notes & Custom Values ─────────────────────────────────────
 router.get('/:id/notes', getEnquiryNotes);
 router.post('/:id/notes', addEnquiryNote);
+router.post('/:id/custom-values', updateEnquiryCustomValue);
 
 export default router;
