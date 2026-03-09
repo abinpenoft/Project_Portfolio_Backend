@@ -414,3 +414,21 @@ CREATE TABLE IF NOT EXISTS enquiry_notes (
     CONSTRAINT fk_note_enquiry FOREIGN KEY (enquiry_id) REFERENCES contact_enquiries(id) ON DELETE CASCADE,
     INDEX idx_note_enquiry (enquiry_id)
 );
+
+-- ============================================================
+--  MODULE: Impact Metrics
+-- ============================================================
+
+-- ─────────────────────────────────────────────────────────────
+--  TABLE: impact_metrics
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS impact_metrics (
+    id            INT UNSIGNED    AUTO_INCREMENT PRIMARY KEY,
+    title         VARCHAR(255)    NOT NULL,
+    value         VARCHAR(100)    NOT NULL,
+    icon_name     VARCHAR(50)     NOT NULL DEFAULT 'Activity',
+    icon_url      VARCHAR(500)    DEFAULT NULL,
+    order_index   INT             NOT NULL DEFAULT 0,
+    created_at    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);

@@ -29,6 +29,7 @@ import contactRoutes from './routes/contactRoutes.js';
 import templateRoutes from './routes/templateRoutes.js';
 import campaignRoutes from './routes/campaignRoutes.js';
 import peopleRoutes from './routes/peopleRoutes.js';
+import impactMetricsRoutes from './routes/impactMetricsRoutes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -94,6 +95,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/people', peopleRoutes);
+app.use('/api/impact-metrics', impactMetricsRoutes);
 
 // ─── 404 Handler ─────────────────────────────────────────────
 app.use((req, res) =>
