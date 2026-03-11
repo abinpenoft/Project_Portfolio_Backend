@@ -63,8 +63,15 @@ export const getPillars = async (req, res) => {
     }
 };
 
+const capitalizeFirstLetter = (str) => {
+    if (!str || typeof str !== 'string') return str;
+    return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
 export const createPillar = async (req, res) => {
-    const { title, description, image_url, order_index } = req.body;
+    let { title, description, image_url, order_index } = req.body;
+    title = capitalizeFirstLetter(title);
+    description = capitalizeFirstLetter(description);
     try {
         const [result] = await pool.query(
             'INSERT INTO core_vision_pillars (title, description, image_url, order_index) VALUES (?, ?, ?, ?)',
@@ -79,7 +86,9 @@ export const createPillar = async (req, res) => {
 
 export const updatePillar = async (req, res) => {
     const { id } = req.params;
-    const { title, description, image_url, order_index } = req.body;
+    let { title, description, image_url, order_index } = req.body;
+    title = capitalizeFirstLetter(title);
+    description = capitalizeFirstLetter(description);
     try {
         const [oldRows] = await pool.query('SELECT image_url FROM core_vision_pillars WHERE id = ?', [id]);
         if (oldRows.length && oldRows[0].image_url && oldRows[0].image_url !== image_url) {
