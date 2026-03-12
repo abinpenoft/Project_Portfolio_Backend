@@ -12,7 +12,8 @@ import {
     getProjectsByLocalBody,
     getProjectsBySector,
     searchPublicProjects,
-    getProjectBySlug
+    getProjectBySlug,
+    getProjectsBySectorName
 } from '../controllers/projectController.js';
 
 const router = express.Router();
@@ -25,6 +26,7 @@ router.get('/public/:id', getProjectById);
 router.get('/public/year/:year', getProjectsByYear);
 router.get('/public/local-body/:id', getProjectsByLocalBody);
 router.get('/public/sector/:id', getProjectsBySector);
+router.get('/public/sector-name/:sectorName', getProjectsBySectorName);
 router.get('/public/search', searchPublicProjects);
 
 

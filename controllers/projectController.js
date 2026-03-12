@@ -206,6 +206,42 @@ export const getProjectsBySector = async (req, res) => {
     }
 };
 
+// ── GET /api/projects/public/sector-name/:sectorName ───────────
+export const getProjectsBySectorName = async (req, res) => {
+    try {
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(50, parseInt(req.query.limit) || 12);
+        const offset = (page - 1) * limit;
+        const { sectorName } = req.params;
+
+        // Perform a JOIN to filter by the readable sector_name
+        const [[{ total }]] = await db.query(
+            `SELECT COUNT(*) AS total 
+             FROM projects p 
+             JOIN sectors s ON s.id = p.sector_id
+             WHERE p.is_active = 1 AND s.name = ?`, [sectorName]
+        );
+        const [rows] = await db.query(
+            `SELECT p.*, s.name AS sector_name, lb.name AS local_body_name
+             FROM projects p
+             JOIN sectors s ON s.id = p.sector_id
+             LEFT JOIN local_bodies lb ON lb.id = p.local_body_id
+             WHERE p.is_active = 1 AND s.name = ?
+             ORDER BY p.display_order ASC, p.created_at DESC
+             LIMIT ? OFFSET ?`,
+            [sectorName, limit, offset]
+        );
+
+        return successResponse(res, {
+            data: rows,
+            pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+        }, 'Projects fetched by sector name.');
+    } catch (err) {
+        console.error('[getProjectsBySectorName]', err);
+        return errorResponse(res, 'Server error fetching projects.');
+    }
+};
+
 // ── GET /api/projects/public/search ────────────────────────────
 export const searchPublicProjects = async (req, res) => {
     try {
