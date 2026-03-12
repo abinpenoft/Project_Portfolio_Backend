@@ -250,8 +250,10 @@ CREATE TABLE IF NOT EXISTS achievements (
 CREATE TABLE IF NOT EXISTS ente_nadu_testimonials (
     id              INT UNSIGNED    AUTO_INCREMENT PRIMARY KEY,
     type            ENUM('text','video')  NOT NULL DEFAULT 'text',
-    -- Text testimonial fields
+    -- Common fields (for both text and video)
     author_name     VARCHAR(150)    DEFAULT NULL,
+    designation     VARCHAR(150)    DEFAULT NULL,
+    -- Text testimonial fields
     house_name      VARCHAR(150)    DEFAULT NULL,
     quote           TEXT            DEFAULT NULL,
     avatar_url      VARCHAR(500)    DEFAULT NULL,

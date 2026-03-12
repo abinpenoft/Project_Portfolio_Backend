@@ -64,6 +64,7 @@ export const getAllEvents = async (req, res) => {
 
         const [rows] = await db.query(
             `SELECT e.*,
+              et.id as eventtype_id,
               et.type_name,
               lb.name AS local_body_name,
               s.name  AS sector_name,

@@ -90,7 +90,7 @@ export const getTestimonialById = async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 export const createTestimonial = async (req, res) => {
     const {
-        type, author_name, house_name, quote,
+        type, author_name, house_name, quote, designation,
         avatar_url, video_url, thumbnail_url, caption, order_index
     } = req.body;
 
@@ -112,11 +112,12 @@ export const createTestimonial = async (req, res) => {
 
         const [result] = await pool.query(
             `INSERT INTO ente_nadu_testimonials
-             (type, author_name, house_name, quote, avatar_url, video_url, thumbnail_url, caption, order_index)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             (type, author_name, designation, house_name, quote, avatar_url, video_url, thumbnail_url, caption, order_index)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 type,
                 author_name?.trim() || null,
+                designation?.trim() || null,
                 house_name?.trim() || null,
                 quote?.trim() || null,
                 avatar_url || null,
@@ -141,7 +142,7 @@ export const createTestimonial = async (req, res) => {
 export const updateTestimonial = async (req, res) => {
     const { id } = req.params;
     const {
-        author_name, house_name, quote,
+        author_name, house_name, quote, designation,
         avatar_url, video_url, thumbnail_url, caption, order_index
     } = req.body;
 
@@ -155,12 +156,13 @@ export const updateTestimonial = async (req, res) => {
 
         await pool.query(
             `UPDATE ente_nadu_testimonials
-             SET author_name = ?, house_name = ?, quote = ?,
+             SET author_name = ?, designation = ?, house_name = ?, quote = ?,
                  avatar_url  = ?, video_url  = ?, thumbnail_url = ?,
                  caption     = ?, order_index = ?
              WHERE id = ?`,
             [
                 author_name?.trim() || null,
+                designation?.trim() || null,
                 house_name?.trim() || null,
                 quote?.trim() || null,
                 avatar_url || null,
