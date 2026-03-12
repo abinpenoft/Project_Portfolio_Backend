@@ -1,5 +1,5 @@
 import db from '../configs/db.js';
-import { successResponse, errorResponse } from '../utils/helpers.js';
+import { successResponse, errorResponse, slugify } from '../utils/helpers.js';
 import { uploadMedia, uploadImage, runMulter } from '../configs/multer.js';
 import fs from 'fs';
 import path from 'path';
@@ -272,11 +272,13 @@ export const createPost = async (req, res) => {
         const [secRows] = await db.query('SELECT id FROM media_sections WHERE id = ?', [section_id]);
         if (!secRows.length) return errorResponse(res, 'Section not found.', 404);
 
+        const slug = slugify(title);
+
         const [result] = await db.query(
-            `INSERT INTO media_posts (section_id, title, content, rich_content, thumbnail_url, video_url, is_featured, published_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO media_posts (section_id, title, slug, content, rich_content, thumbnail_url, video_url, is_featured, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-                section_id, title, content || null, rich_content || null,
+                section_id, title, slug, content || null, rich_content || null,
                 thumbnail_url || null, video_url || null,
                 is_featured ? 1 : 0,
                 published_at || new Date().toISOString().slice(0, 19).replace('T', ' '),
@@ -291,6 +293,7 @@ export const createPost = async (req, res) => {
         return successResponse(res, { data: rows[0] }, 'Post created successfully.', 201);
     } catch (err) {
         console.error('[createPost]', err);
+        if (err.code === 'ER_DUP_ENTRY') return errorResponse(res, 'A post with this title already exists.', 409);
         return errorResponse(res, 'Server error creating post.');
     }
 };
@@ -303,13 +306,15 @@ export const updatePost = async (req, res) => {
         const { section_id, title, content, rich_content, thumbnail_url, video_url, is_featured, published_at } = req.body;
         if (!section_id || !title) return errorResponse(res, 'section_id and title are required.', 400);
 
+        const slug = slugify(title);
+
         const [result] = await db.query(
             `UPDATE media_posts SET
-         section_id = ?, title = ?, content = ?, rich_content = ?,
+         section_id = ?, title = ?, slug = ?, content = ?, rich_content = ?,
          thumbnail_url = ?, video_url = ?, is_featured = ?, published_at = ?
        WHERE id = ?`,
             [
-                section_id, title, content || null, rich_content || null,
+                section_id, title, slug, content || null, rich_content || null,
                 thumbnail_url || null, video_url || null,
                 is_featured ? 1 : 0,
                 published_at || new Date().toISOString().slice(0, 19).replace('T', ' '),
@@ -325,7 +330,27 @@ export const updatePost = async (req, res) => {
         return successResponse(res, { data: rows[0] }, 'Post updated successfully.');
     } catch (err) {
         console.error('[updatePost]', err);
+        if (err.code === 'ER_DUP_ENTRY') return errorResponse(res, 'A post with this title already exists.', 409);
         return errorResponse(res, 'Server error updating post.');
+    }
+};
+
+// GET /api/media-centre/posts/slug/:slug  (public)
+export const getPostBySlug = async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const [rows] = await db.query(
+            `SELECT mp.*, ms.section_name
+       FROM media_posts mp
+       JOIN media_sections ms ON ms.id = mp.section_id
+       WHERE mp.slug = ?`,
+            [slug]
+        );
+        if (!rows.length) return errorResponse(res, 'Post not found.', 404);
+        return successResponse(res, { data: rows[0] }, 'Post fetched successfully.');
+    } catch (err) {
+        console.error('[getPostBySlug]', err);
+        return errorResponse(res, 'Server error fetching post.');
     }
 };
 

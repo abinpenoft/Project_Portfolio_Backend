@@ -11,6 +11,7 @@ import {
     getPostsBySection,
     getAllPosts,
     getPostById,
+    getPostBySlug,
     createPost,
     updatePost,
     deletePost,
@@ -26,6 +27,7 @@ router.get('/all-updates', getAllUpdates);
 router.get('/sections', getPublicSections);
 router.get('/sections/all', getAllSections);       // ← must be before /:id wildcard
 router.get('/sections/:id/posts', getPostsBySection);
+router.get('/posts/slug/:slug', getPostBySlug);   // ← must be before /:id
 router.get('/posts/:id', getPostById);
 
 // ─── Protected (cookie JWT) ───────────────────────────────────

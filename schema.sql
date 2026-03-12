@@ -176,6 +176,7 @@ CREATE TABLE IF NOT EXISTS media_posts (
     id              INT UNSIGNED    AUTO_INCREMENT PRIMARY KEY,
     section_id      INT UNSIGNED    NOT NULL,
     title           VARCHAR(255)    NOT NULL,
+    slug            VARCHAR(300)    NOT NULL UNIQUE,
     content         LONGTEXT        DEFAULT NULL,
     thumbnail_url   VARCHAR(500)    DEFAULT NULL,
     is_featured     BOOLEAN         NOT NULL DEFAULT 0,
@@ -184,6 +185,7 @@ CREATE TABLE IF NOT EXISTS media_posts (
     updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (section_id) REFERENCES media_sections(id) ON DELETE CASCADE,
     INDEX idx_section    (section_id),
+    INDEX idx_slug       (slug),
     INDEX idx_featured   (is_featured),
     INDEX idx_published  (published_at)
 );
