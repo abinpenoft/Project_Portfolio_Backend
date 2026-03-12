@@ -247,6 +247,50 @@ export const getEventBySlug = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────
+//  GET /api/events/sector/:sectorName
+//  Public — Fetch events filtered by sector name
+// ─────────────────────────────────────────────────────────────
+export const getEventsBySectorName = async (req, res) => {
+    try {
+        const { sectorName } = req.params;
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(50, parseInt(req.query.limit) || 10);
+        const offset = (page - 1) * limit;
+
+        const [[{ total }]] = await db.query(
+            `SELECT COUNT(*) AS total 
+             FROM events e 
+             JOIN sectors s ON s.id = e.sector_id 
+             WHERE s.name = ?`, [sectorName]
+        );
+
+        const [rows] = await db.query(
+            `SELECT e.*,
+              et.type_name,
+              lb.name AS local_body_name,
+              s.name  AS sector_name,
+              (SELECT file_url FROM event_media em WHERE em.event_id = e.id AND em.media_type = 'photo' LIMIT 1) AS cover_image
+       FROM events e
+       LEFT JOIN event_types  et ON et.id = e.event_type_id
+       LEFT JOIN local_bodies lb ON lb.id = e.local_body_id
+       LEFT JOIN sectors       s ON  s.id = e.sector_id
+       WHERE s.name = ?
+       ORDER BY e.event_date DESC
+       LIMIT ? OFFSET ?`,
+            [sectorName, limit, offset]
+        );
+
+        return successResponse(res, {
+            data: rows,
+            pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+        }, `Events for sector "${sectorName}" fetched successfully.`);
+    } catch (err) {
+        console.error('[getEventsBySectorName]', err);
+        return errorResponse(res, 'Server error fetching events by sector name.');
+    }
+};
+
+// ─────────────────────────────────────────────────────────────
 //  POST /api/events  (Auth)
 
 //  Status is auto-computed; any status in body is ignored.

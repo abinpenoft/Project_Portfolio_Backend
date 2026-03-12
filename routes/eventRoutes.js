@@ -14,6 +14,7 @@ import {
     deleteEventMedia,
     uploadInlineImage,
     sendEventInvitations,
+    getEventsBySectorName,
 } from '../controllers/eventController.js';
 
 const router = express.Router();
@@ -22,6 +23,7 @@ const router = express.Router();
 router.get('/slug/:slug', getEventBySlug);
 router.get('/', getAllEvents);
 router.get('/by-status', getEventsByStatus);   // ?status=upcoming|ongoing|past
+router.get('/sector/:sectorName', getEventsBySectorName);
 router.get('/:id', getEventById);
 
 

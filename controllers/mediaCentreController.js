@@ -137,17 +137,36 @@ export const deleteSection = async (req, res) => {
 // GET /api/media-centre/latest  (public — featured posts)
 export const getLatestUpdates = async (req, res) => {
     try {
-        const limit = Math.min(20, parseInt(req.query.limit) || 6);
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(50, parseInt(req.query.limit) || 6);
+        const offset = (page - 1) * limit;
+
+        const [[{ total }]] = await db.query(
+            `SELECT COUNT(*) AS total 
+             FROM media_posts mp
+             JOIN media_sections ms ON ms.id = mp.section_id
+             WHERE mp.is_featured = 1 AND ms.is_active = 1`
+        );
+
         const [rows] = await db.query(
             `SELECT mp.*, ms.section_name
-       FROM media_posts mp
-       JOIN media_sections ms ON ms.id = mp.section_id
-       WHERE mp.is_featured = 1 AND ms.is_active = 1
-       ORDER BY mp.published_at DESC
-       LIMIT ?`,
-            [limit]
+             FROM media_posts mp
+             JOIN media_sections ms ON ms.id = mp.section_id
+             WHERE mp.is_featured = 1 AND ms.is_active = 1
+             ORDER BY mp.published_at DESC
+             LIMIT ? OFFSET ?`,
+            [limit, offset]
         );
-        return successResponse(res, { data: rows }, 'Latest updates fetched successfully.');
+
+        return successResponse(res, {
+            data: rows,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        }, 'Latest updates fetched successfully.');
     } catch (err) {
         console.error('[getLatestUpdates]', err);
         return errorResponse(res, 'Server error fetching latest updates.');
@@ -157,17 +176,35 @@ export const getLatestUpdates = async (req, res) => {
 // GET /api/media-centre/all-updates (public — all posts sorted by date)
 export const getAllUpdates = async (req, res) => {
     try {
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(50, parseInt(req.query.limit) || 10);
+        const offset = (page - 1) * limit;
+
+        const [[{ total }]] = await db.query(
+            `SELECT COUNT(*) AS total 
+             FROM media_posts mp
+             JOIN media_sections ms ON ms.id = mp.section_id
+             WHERE ms.is_active = 1`
+        );
+
         const [rows] = await db.query(
             `SELECT mp.*, ms.section_name
              FROM media_posts mp
              JOIN media_sections ms ON ms.id = mp.section_id
              WHERE ms.is_active = 1
-             ORDER BY mp.published_at DESC`
+             ORDER BY mp.published_at DESC
+             LIMIT ? OFFSET ?`,
+            [limit, offset]
         );
 
         return successResponse(res, {
             data: rows,
-            total: rows.length
+            pagination: { 
+                total, 
+                page, 
+                limit, 
+                totalPages: Math.ceil(total / limit) 
+            }
         }, 'All updates fetched successfully.');
     } catch (err) {
         console.error('[getAllUpdates]', err);
