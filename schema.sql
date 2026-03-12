@@ -104,6 +104,7 @@ CREATE TABLE IF NOT EXISTS event_types (
 CREATE TABLE IF NOT EXISTS events (
     id              INT UNSIGNED    AUTO_INCREMENT PRIMARY KEY,
     event_name      VARCHAR(255)    NOT NULL,
+    slug            VARCHAR(255)    NOT NULL UNIQUE,
     event_date      DATE            NOT NULL,
     event_time      TIME            NOT NULL,
     event_time_to   TIME            DEFAULT NULL,
@@ -452,4 +453,31 @@ CREATE TABLE IF NOT EXISTS kothamangalam_gallery (
     updated_at    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_media_type (media_type),
     INDEX idx_created (created_at)
+);
+-- ============================================================
+--  MODULE: Projects
+-- ============================================================
+
+-- ─────────────────────────────────────────────────────────────
+--  TABLE: projects
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS projects (
+    id            INT UNSIGNED    AUTO_INCREMENT PRIMARY KEY,
+    title         VARCHAR(255)    NOT NULL,
+    slug          VARCHAR(255)    NOT NULL UNIQUE,
+    description   TEXT            DEFAULT NULL,
+    project_content LONGTEXT      DEFAULT NULL,
+    images        JSON            DEFAULT NULL,
+    tags          VARCHAR(1000)   DEFAULT NULL,
+    year          YEAR            DEFAULT NULL,
+    sector_id     INT UNSIGNED    DEFAULT NULL,
+    local_body_id INT UNSIGNED    DEFAULT NULL,
+    display_order INT             NOT NULL DEFAULT 0,
+    is_active     BOOLEAN         NOT NULL DEFAULT 1,
+    created_at    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (sector_id)     REFERENCES sectors(id)      ON DELETE SET NULL,
+    FOREIGN KEY (local_body_id) REFERENCES local_bodies(id) ON DELETE SET NULL,
+    INDEX idx_is_active (is_active),
+    INDEX idx_year (year)
 );

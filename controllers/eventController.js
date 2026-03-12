@@ -4,7 +4,8 @@ import { fileURLToPath } from 'url';
 import db from '../configs/db.js';
 import transporter from '../configs/mailer.js';
 import { uploadMedia, uploadMediaFields, uploadImage, uploadThumbnail, runMulter } from '../configs/multer.js';
-import { successResponse, errorResponse } from '../utils/helpers.js';
+import { successResponse, errorResponse, slugify } from '../utils/helpers.js';
+
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -192,7 +193,61 @@ export const getEventById = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────
+//  GET /api/events/slug/:slug
+//  Public — Fetch event by slug
+// ─────────────────────────────────────────────────────────────
+export const getEventBySlug = async (req, res) => {
+    try {
+        const { slug } = req.params;
+
+        const [rows] = await db.query(
+            `SELECT e.*,
+              et.type_name,
+              lb.name AS local_body_name,
+              s.name  AS sector_name
+       FROM events e
+       LEFT JOIN event_types  et ON et.id = e.event_type_id
+       LEFT JOIN local_bodies lb ON lb.id = e.local_body_id
+       LEFT JOIN sectors       s ON  s.id = e.sector_id
+       WHERE e.slug = ?`,
+            [slug]
+        );
+        if (!rows.length) return errorResponse(res, 'Event not found.', 404);
+
+        const event = rows[0];
+        const id = event.id;
+
+        // Fetch ordered content paragraphs
+        const [content] = await db.query(
+            'SELECT * FROM event_content WHERE event_id = ? ORDER BY content_order ASC',
+            [id]
+        );
+
+        // Fetch all media items
+        const [media] = await db.query(
+            'SELECT * FROM event_media WHERE event_id = ? ORDER BY created_at ASC',
+            [id]
+        );
+
+        return successResponse(res, {
+            data: {
+                ...event,
+                content,
+                media: {
+                    photos: media.filter(m => m.media_type === 'photo'),
+                    videos: media.filter(m => m.media_type === 'video'),
+                },
+            },
+        }, 'Event fetched successfully.');
+    } catch (err) {
+        console.error('[getEventBySlug]', err);
+        return errorResponse(res, 'Server error fetching event by slug.');
+    }
+};
+
+// ─────────────────────────────────────────────────────────────
 //  POST /api/events  (Auth)
+
 //  Status is auto-computed; any status in body is ignored.
 // ─────────────────────────────────────────────────────────────
 export const createEvent = async (req, res) => {
@@ -209,16 +264,27 @@ export const createEvent = async (req, res) => {
         // Auto-compute status — body value is intentionally ignored
         const status = computeStatus(event_date, event_time);
 
+        // Generate unique slug
+        let baseSlug = slugify(event_name);
+        let slug = baseSlug;
+        let counter = 1;
+        while (true) {
+            const [existing] = await db.query('SELECT id FROM events WHERE slug = ?', [slug]);
+            if (existing.length === 0) break;
+            slug = `${baseSlug}-${counter++}`;
+        }
+
         const [result] = await db.query(
             `INSERT INTO events
-         (event_name, event_date, event_time, event_time_to, venue, short_description, status, event_type_id, local_body_id, sector_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (event_name, slug, event_date, event_time, event_time_to, venue, short_description, status, event_type_id, local_body_id, sector_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-                event_name, event_date, event_time, event_time_to || null, venue,
+                event_name, slug, event_date, event_time, event_time_to || null, venue,
                 short_description || null, status,
                 event_type_id || null, local_body_id || null, sector_id || null,
             ]
         );
+
 
         const [rows] = await db.query('SELECT * FROM events WHERE id = ?', [result.insertId]);
         return successResponse(res, { data: rows[0] }, 'Event created successfully.', 201);
@@ -247,14 +313,30 @@ export const updateEvent = async (req, res) => {
         // Auto-compute status — body value is intentionally ignored
         const status = computeStatus(event_date, event_time);
 
+        // Generate unique slug if name changed
+        const [[oldEvt]] = await db.query('SELECT event_name, slug FROM events WHERE id = ?', [id]);
+        if (!oldEvt) return errorResponse(res, 'Event not found.', 404);
+
+        let slug = oldEvt.slug;
+        if (event_name !== oldEvt.event_name) {
+            let baseSlug = slugify(event_name);
+            slug = baseSlug;
+            let counter = 1;
+            while (true) {
+                const [existing] = await db.query('SELECT id FROM events WHERE slug = ? AND id != ?', [slug, id]);
+                if (existing.length === 0) break;
+                slug = `${baseSlug}-${counter++}`;
+            }
+        }
+
         const [result] = await db.query(
             `UPDATE events SET
-         event_name = ?, event_date = ?, event_time = ?, event_time_to = ?, venue = ?,
+         event_name = ?, slug = ?, event_date = ?, event_time = ?, event_time_to = ?, venue = ?,
          short_description = ?, status = ?,
          event_type_id = ?, local_body_id = ?, sector_id = ?
        WHERE id = ?`,
             [
-                event_name, event_date, event_time, event_time_to || null, venue,
+                event_name, slug, event_date, event_time, event_time_to || null, venue,
                 short_description || null, status,
                 event_type_id || null, local_body_id || null, sector_id || null,
                 id,

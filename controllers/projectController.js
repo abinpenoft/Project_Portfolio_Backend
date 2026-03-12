@@ -1,5 +1,6 @@
 import db from '../configs/db.js';
-import { successResponse, errorResponse } from '../utils/helpers.js';
+import { successResponse, errorResponse, slugify } from '../utils/helpers.js';
+
 import { uploadImage, runMulter } from '../configs/multer.js';
 import fs from 'fs';
 import path from 'path';
@@ -247,6 +248,24 @@ export const searchPublicProjects = async (req, res) => {
     }
 };
 
+// ── GET /api/projects/public/slug/:slug ────────────────────────
+export const getProjectBySlug = async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            `SELECT p.*, s.name AS sector_name, lb.name AS local_body_name
+             FROM projects p
+             LEFT JOIN sectors s     ON s.id  = p.sector_id
+             LEFT JOIN local_bodies lb ON lb.id = p.local_body_id
+             WHERE p.slug = ?`, [req.params.slug]
+        );
+        if (!rows.length) return errorResponse(res, 'Project not found.', 404);
+        return successResponse(res, { data: rows[0] }, 'Project fetched.');
+    } catch (err) {
+        console.error('[getProjectBySlug]', err);
+        return errorResponse(res, 'Server error.');
+    }
+};
+
 // ── GET /api/projects/:id  ─────────────────────────────────────
 export const getProjectById = async (req, res) => {
     try {
@@ -276,13 +295,24 @@ export const createProject = async (req, res) => {
 
         if (!title?.trim()) return errorResponse(res, 'Title is required.', 400);
 
+        // Generate unique slug
+        let baseSlug = slugify(title);
+        let slug = baseSlug;
+        let counter = 1;
+        while (true) {
+            const [existing] = await db.query('SELECT id FROM projects WHERE slug = ?', [slug]);
+            if (existing.length === 0) break;
+            slug = `${baseSlug}-${counter++}`;
+        }
+
         const imagesJson = JSON.stringify(Array.isArray(images) ? images : []);
         const [result] = await db.query(
-            `INSERT INTO projects (title, description, project_content, images, tags, year, sector_id, local_body_id, display_order, is_active)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [title.trim(), description || null, project_content || null, imagesJson, tags || null, year || null,
+            `INSERT INTO projects (title, slug, description, project_content, images, tags, year, sector_id, local_body_id, display_order, is_active)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [title.trim(), slug, description || null, project_content || null, imagesJson, tags || null, year || null,
             sector_id || null, local_body_id || null, display_order, is_active ? 1 : 0]
         );
+
         const [rows] = await db.query(
             `SELECT p.*, s.name AS sector_name, lb.name AS local_body_name
              FROM projects p
@@ -309,14 +339,31 @@ export const updateProject = async (req, res) => {
 
         if (!title?.trim()) return errorResponse(res, 'Title is required.', 400);
 
+        // Generate unique slug if title changed
+        const [[oldProj]] = await db.query('SELECT title, slug FROM projects WHERE id = ?', [id]);
+        if (!oldProj) return errorResponse(res, 'Project not found.', 404);
+
+        let slug = oldProj.slug;
+        if (title.trim() !== oldProj.title) {
+            let baseSlug = slugify(title);
+            slug = baseSlug;
+            let counter = 1;
+            while (true) {
+                const [existing] = await db.query('SELECT id FROM projects WHERE slug = ? AND id != ?', [slug, id]);
+                if (existing.length === 0) break;
+                slug = `${baseSlug}-${counter++}`;
+            }
+        }
+
         const imagesJson = JSON.stringify(Array.isArray(images) ? images : []);
         const [result] = await db.query(
-            `UPDATE projects SET title=?, description=?, project_content=?, images=?, tags=?, year=?,
+            `UPDATE projects SET title=?, slug=?, description=?, project_content=?, images=?, tags=?, year=?,
              sector_id=?, local_body_id=?, display_order=?, is_active=?, updated_at=NOW()
              WHERE id=?`,
-            [title.trim(), description || null, project_content || null, imagesJson, tags || null, year || null,
+            [title.trim(), slug, description || null, project_content || null, imagesJson, tags || null, year || null,
             sector_id || null, local_body_id || null, display_order, is_active ? 1 : 0, id]
         );
+
         if (!result.affectedRows) return errorResponse(res, 'Project not found.', 404);
         const [rows] = await db.query(
             `SELECT p.*, s.name AS sector_name, lb.name AS local_body_name

@@ -11,7 +11,8 @@ import {
     getProjectsByYear,
     getProjectsByLocalBody,
     getProjectsBySector,
-    searchPublicProjects
+    searchPublicProjects,
+    getProjectBySlug
 } from '../controllers/projectController.js';
 
 const router = express.Router();
@@ -23,6 +24,8 @@ router.get('/public/year/:year', getProjectsByYear);
 router.get('/public/local-body/:id', getProjectsByLocalBody);
 router.get('/public/sector/:id', getProjectsBySector);
 router.get('/public/search', searchPublicProjects);
+router.get('/public/slug/:slug', getProjectBySlug);
+
 
 // All project routes are protected (admin only)
 router.use(verifyToken);

@@ -4,6 +4,7 @@ import {
     getAllEvents,
     getEventsByStatus,
     getEventById,
+    getEventBySlug,
     createEvent,
     updateEvent,
     deleteEvent,
@@ -21,6 +22,8 @@ const router = express.Router();
 router.get('/', getAllEvents);
 router.get('/by-status', getEventsByStatus);   // ?status=upcoming|ongoing|past
 router.get('/:id', getEventById);
+router.get('/slug/:slug', getEventBySlug);
+
 
 // ─── Protected (cookie JWT) ───────────────────────────────────
 router.use(verifyToken);
