@@ -19,10 +19,10 @@ import {
 const router = express.Router();
 
 // ─── Public ───────────────────────────────────────────────────
+router.get('/slug/:slug', getEventBySlug);
 router.get('/', getAllEvents);
 router.get('/by-status', getEventsByStatus);   // ?status=upcoming|ongoing|past
 router.get('/:id', getEventById);
-router.get('/slug/:slug', getEventBySlug);
 
 
 // ─── Protected (cookie JWT) ───────────────────────────────────

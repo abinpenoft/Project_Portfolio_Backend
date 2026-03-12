@@ -250,6 +250,7 @@ export const searchPublicProjects = async (req, res) => {
 
 // ── GET /api/projects/public/slug/:slug ────────────────────────
 export const getProjectBySlug = async (req, res) => {
+    console.log('[DEBUG] getProjectBySlug called with:', req.params.slug);
     try {
         const [rows] = await db.query(
             `SELECT p.*, s.name AS sector_name, lb.name AS local_body_name
