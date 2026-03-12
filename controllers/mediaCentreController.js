@@ -303,7 +303,7 @@ export const getPostById = async (req, res) => {
 // POST /api/media-centre/posts  (admin)
 export const createPost = async (req, res) => {
     try {
-        const { section_id, title, content, rich_content, thumbnail_url, video_url, is_featured = 0, published_at } = req.body;
+        const { section_id, title, author, content, rich_content, thumbnail_url, video_url, is_featured = 0, published_at } = req.body;
         if (!section_id || !title) return errorResponse(res, 'section_id and title are required.', 400);
 
         const [secRows] = await db.query('SELECT id FROM media_sections WHERE id = ?', [section_id]);
@@ -312,10 +312,10 @@ export const createPost = async (req, res) => {
         const slug = slugify(title);
 
         const [result] = await db.query(
-            `INSERT INTO media_posts (section_id, title, slug, content, rich_content, thumbnail_url, video_url, is_featured, published_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO media_posts (section_id, title, slug, author, content, rich_content, thumbnail_url, video_url, is_featured, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-                section_id, title, slug, content || null, rich_content || null,
+                section_id, title, slug, author || 'Office of Shibu Theckumpuram', content || null, rich_content || null,
                 thumbnail_url || null, video_url || null,
                 is_featured ? 1 : 0,
                 published_at || new Date().toISOString().slice(0, 19).replace('T', ' '),
@@ -340,18 +340,18 @@ export const createPost = async (req, res) => {
 export const updatePost = async (req, res) => {
     try {
         const { id } = req.params;
-        const { section_id, title, content, rich_content, thumbnail_url, video_url, is_featured, published_at } = req.body;
+        const { section_id, title, author, content, rich_content, thumbnail_url, video_url, is_featured, published_at } = req.body;
         if (!section_id || !title) return errorResponse(res, 'section_id and title are required.', 400);
 
         const slug = slugify(title);
 
         const [result] = await db.query(
             `UPDATE media_posts SET
-         section_id = ?, title = ?, slug = ?, content = ?, rich_content = ?,
+         section_id = ?, title = ?, slug = ?, author = ?, content = ?, rich_content = ?,
          thumbnail_url = ?, video_url = ?, is_featured = ?, published_at = ?
        WHERE id = ?`,
             [
-                section_id, title, slug, content || null, rich_content || null,
+                section_id, title, slug, author || 'Office of Shibu Theckumpuram', content || null, rich_content || null,
                 thumbnail_url || null, video_url || null,
                 is_featured ? 1 : 0,
                 published_at || new Date().toISOString().slice(0, 19).replace('T', ' '),
