@@ -32,7 +32,7 @@ router.get('/posts/slug/:slug', getPostBySlug);   // ← must be before /:id
 router.get('/posts/:id', getPostById);
 
 // ─── Protected (cookie JWT) ───────────────────────────────────
-router.use(verifyToken);
+// router.use(verifyToken);
 
 router.post('/upload', uploadMediaFile);          // ← file upload
 router.post('/upload-video', uploadPostVideo);
