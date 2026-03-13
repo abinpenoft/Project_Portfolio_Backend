@@ -31,6 +31,7 @@ import campaignRoutes from './routes/campaignRoutes.js';
 import peopleRoutes from './routes/peopleRoutes.js';
 import impactMetricsRoutes from './routes/impactMetricsRoutes.js';
 import kothamangalamGalleryRoutes from './routes/kothamangalamGalleryRoutes.js';
+import programRoutes from './routes/programRoutes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -98,6 +99,7 @@ app.use('/api/campaigns', campaignRoutes);
 app.use('/api/people', peopleRoutes);
 app.use('/api/impact-metrics', impactMetricsRoutes);
 app.use('/api/kothamangalam-gallery', kothamangalamGalleryRoutes);
+app.use('/api/programs', programRoutes);
 
 // ─── 404 Handler ─────────────────────────────────────────────
 app.use((req, res) =>
