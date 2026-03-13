@@ -13,10 +13,7 @@ if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, uploadDir),
     filename: (req, file, cb) => {
-        // Sanitize original file name to remove spaces or weird characters
-        const sanitizedOriginalName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '-');
-        // Prepend with timestamp to prevent overwriting files with the same name
-        const name = `${Date.now()}-${sanitizedOriginalName}`;
+        const name = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '-');
         cb(null, name);
     },
 });
@@ -97,10 +94,7 @@ const iconStorage = multer.diskStorage({
         cb(null, iconDir);
     },
     filename: (req, file, cb) => {
-        // Sanitize original file name to remove spaces or weird characters
-        const sanitizedOriginalName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '-');
-        // Prepend with timestamp to prevent overwriting files with the same name
-        const name = `${Date.now()}-${sanitizedOriginalName}`;
+        const name = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '-');
         cb(null, name);
     },
 });
