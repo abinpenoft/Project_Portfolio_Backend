@@ -16,9 +16,27 @@ export const getPeople = async (req, res) => {
         const params = [];
 
         if (search) {
-            const like = `%${search}%`;
-            where += ' AND (p.full_name LIKE ? OR p.mobile LIKE ? OR p.email LIKE ? OR p.house_name LIKE ?)';
-            params.push(like, like, like, like);
+            const like = `${search}%`;
+            const searchFields = req.query.search_fields ? req.query.search_fields.split(',') : ['full_name', 'mobile', 'email', 'house_name'];
+            
+            const fieldMap = {
+                full_name: 'p.full_name',
+                mobile: 'p.mobile',
+                email: 'p.email',
+                house_name: 'p.house_name'
+            };
+
+            const searchClauses = [];
+            searchFields.forEach(field => {
+                if (fieldMap[field]) {
+                    searchClauses.push(`${fieldMap[field]} LIKE ?`);
+                    params.push(like);
+                }
+            });
+
+            if (searchClauses.length > 0) {
+                where += ` AND (${searchClauses.join(' OR ')})`;
+            }
         }
 
         if (local_body_id && local_body_id !== 'all') {

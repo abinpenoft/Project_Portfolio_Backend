@@ -822,30 +822,41 @@ export const sendEventInvitations = async (req, res) => {
         };
 
         if (channel === 'email') {
-            const senderEmail = process.env.SMTP_USER || 'noreply@diavets.com';
+            const senderEmail = process.env.SMTP_USER;
+            const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-            // Sequential sending for simplicity in this MVP block
-            for (const person of people) {
-                if (!person.email) {
-                    results.failed++;
-                    results.details.push({ id: person.id, status: 'failed', reason: 'No email address' });
-                    continue;
-                }
+            const CHUNK_SIZE = 5;
+            for (let i = 0; i < people.length; i += CHUNK_SIZE) {
+                const chunk = people.slice(i, i + CHUNK_SIZE);
 
-                try {
-                    const htmlContent = formatMessage(message_template || 'Hello [Name], You are invited to [EventName] on [Date] at [Venue].', person);
-                    await transporter.sendMail({
-                        from: `"Diavets Events" <${senderEmail}>`,
-                        to: person.email,
-                        subject: `Invitation: ${event.event_name}`,
-                        html: `<div style="font-family: sans-serif;">${htmlContent.replace(/\n/g, '<br>')}</div>`
-                    });
-                    results.success++;
-                } catch (err) {
-                    console.error(`Failed to send email to ${person.email}:`, err);
-                    results.failed++;
-                    results.details.push({ id: person.id, status: 'failed', reason: err.message });
-                }
+                await Promise.allSettled(chunk.map(async (person) => {
+                    if (!person.email) {
+                        results.failed++;
+                        results.details.push({ id: person.id, status: 'failed', reason: 'No email address' });
+                        return;
+                    }
+
+                    // Small random delay (50ms - 200ms) to jitter sends
+                    await delay(Math.floor(Math.random() * (200 - 50 + 1) + 50));
+
+                    try {
+                        const htmlContent = formatMessage(message_template || 'Hello [Name], You are invited to [EventName] on [Date] at [Venue].', person);
+                        await transporter.sendMail({
+                            from: `"Shibu Theckumpuram Events" <${senderEmail}>`,
+                            to: person.email,
+                            subject: `Invitation: ${event.event_name}`,
+                            html: `<div style="font-family: sans-serif;">${htmlContent.replace(/\n/g, '<br>')}</div>`
+                        });
+                        results.success++;
+                    } catch (err) {
+                        console.error(`Failed to send email to ${person.email}:`, err);
+                        results.failed++;
+                        results.details.push({ id: person.id, status: 'failed', reason: err.message });
+                    }
+                }));
+
+                // Short break between chunks to prevent SMTP saturation
+                if (i + CHUNK_SIZE < people.length) await delay(500);
             }
         } else {
             // WhatsApp/SMS - Generate links/messages (Simulated Bulk)

@@ -1,9 +1,9 @@
 import 'dotenv/config';
 import transporter from '../configs/mailer.js';
 
-const APP_NAME = process.env.APP_NAME || 'Diavets';
-const MAIL_FROM = process.env.MAIL_FROM || `"${APP_NAME}" <no-reply@diavets.com>`;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const APP_NAME = process.env.APP_NAME || 'Shibu Theckumpuram';
+const MAIL_FROM = process.env.MAIL_FROM || `"${APP_NAME}" <no-reply@shibu-theckumpuram.com>`;
+const FRONTEND_URL = process.env.FRONTEND_URL;
 
 // ─────────────────────────────────────────────────────────────
 //  Forgot Password Email
