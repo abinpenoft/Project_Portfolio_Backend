@@ -23,12 +23,12 @@ const router = express.Router();
 router.get('/public/slug/:slug', (req, res, next) => { console.log('DEBUG: Hit public slug route'); next(); }, getProjectBySlug);
 router.get('/slug/:slug', (req, res, next) => { console.log('DEBUG: Hit shortened slug route'); next(); }, getProjectBySlug);
 router.get('/public', getAllProjects);
+router.get('/public/search', searchPublicProjects);
 router.get('/public/:id', getProjectById);
 router.get('/public/year/:year', getProjectsByYear);
 router.get('/public/local-body/:id', getProjectsByLocalBody);
 router.get('/public/sector/:id', getProjectsBySector);
 router.get('/public/sector-name/:sectorName', getProjectsBySectorName);
-router.get('/public/search', searchPublicProjects);
 
 
 

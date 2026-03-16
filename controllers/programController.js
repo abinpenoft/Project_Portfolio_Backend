@@ -12,8 +12,28 @@ export const getAllPrograms = async (req, res) => {
     try {
         const [rows] = await db.query('SELECT * FROM programs ORDER BY created_at DESC');
         
-        // Fetch media count for each program if needed, or just return basic info
-        return successResponse(res, { data: rows }, 'Programs fetched successfully.');
+        if (rows.length === 0) {
+            return successResponse(res, { data: [] }, 'Programs fetched successfully.');
+        }
+
+        const programIds = rows.map(p => p.id);
+        const [mediaRows] = await db.query(
+            'SELECT * FROM program_media WHERE program_id IN (?) ORDER BY order_index ASC',
+            [programIds]
+        );
+
+        const mediaByProgram = mediaRows.reduce((acc, media) => {
+            if (!acc[media.program_id]) acc[media.program_id] = [];
+            acc[media.program_id].push(media);
+            return acc;
+        }, {});
+
+        const data = rows.map(program => ({
+            ...program,
+            media: mediaByProgram[program.id] || []
+        }));
+
+        return successResponse(res, { data }, 'Programs fetched successfully.');
     } catch (err) {
         console.error('[getAllPrograms]', err);
         return errorResponse(res, 'Server error fetching programs.');
@@ -167,14 +187,16 @@ export const addProgramMedia = async (req, res) => {
         await runMulter(uploadMediaFields, req, res);
 
         const { id } = req.params;
-        const { media_type, caption } = req.body;
+        const { media_type, caption, youtube_url } = req.body;
 
         const mainFile = req.files?.file?.[0];
         const thumbFile = req.files?.thumbnail?.[0];
 
-        if (!mainFile) return errorResponse(res, 'No file uploaded.', 400);
+        if (!mainFile && !youtube_url) {
+            return errorResponse(res, 'No file uploaded.', 400);
+        }
 
-        let fileUrl = `/uploads/${mainFile.filename}`;
+        let fileUrl = mainFile ? `/uploads/${mainFile.filename}` : youtube_url;
         let thumbnailUrl = thumbFile ? `/uploads/${thumbFile.filename}` : null;
 
         // Fetch program title
