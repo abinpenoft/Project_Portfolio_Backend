@@ -1,5 +1,5 @@
 import db from '../configs/db.js';
-import { successResponse, errorResponse, slugify } from '../utils/helpers.js';
+import { successResponse, errorResponse, slugify, renameMediaToSeoFriendly } from '../utils/helpers.js';
 import { uploadMediaFields, runMulter } from '../configs/multer.js';
 import fs from 'fs';
 import path from 'path';
@@ -174,8 +174,19 @@ export const addProgramMedia = async (req, res) => {
 
         if (!mainFile) return errorResponse(res, 'No file uploaded.', 400);
 
-        const fileUrl = `uploads/${mainFile.filename}`;
-        const thumbnailUrl = thumbFile ? `uploads/${thumbFile.filename}` : null;
+        let fileUrl = `/uploads/${mainFile.filename}`;
+        let thumbnailUrl = thumbFile ? `/uploads/${thumbFile.filename}` : null;
+
+        // Fetch program title
+        const [progRows] = await db.query('SELECT title FROM programs WHERE id = ?', [id]);
+        if (progRows.length > 0) {
+            const urlsToRename = [fileUrl];
+            if (thumbnailUrl) urlsToRename.push(thumbnailUrl);
+
+            const renamedUrls = renameMediaToSeoFriendly(urlsToRename, progRows[0].title);
+            fileUrl = renamedUrls[0];
+            if (thumbnailUrl) thumbnailUrl = renamedUrls[1];
+        }
 
         const [result] = await db.query(
             'INSERT INTO program_media (program_id, media_type, file_url, thumbnail_url, caption) VALUES (?, ?, ?, ?, ?)',

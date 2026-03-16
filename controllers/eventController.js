@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import db from '../configs/db.js';
 import transporter from '../configs/mailer.js';
 import { uploadMedia, uploadMediaFields, uploadImage, uploadThumbnail, runMulter } from '../configs/multer.js';
-import { successResponse, errorResponse, slugify } from '../utils/helpers.js';
+import { successResponse, errorResponse, slugify, renameMediaToSeoFriendly } from '../utils/helpers.js';
 
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -587,15 +587,23 @@ export const addEventMedia = async (req, res) => {
             return errorResponse(res, 'media_type must be "photo" or "video".', 400);
 
         // Check event exists
-        const [evtRows] = await db.query('SELECT id FROM events WHERE id = ?', [id]);
+        const [evtRows] = await db.query('SELECT id, event_name FROM events WHERE id = ?', [id]);
         if (!evtRows.length) {
             fs.unlinkSync(mainFile.path);
             if (thumbFile) fs.unlinkSync(thumbFile.path);
             return errorResponse(res, 'Event not found.', 404);
         }
 
-        const fileUrl = `uploads/${mainFile.filename}`;
-        const thumbnailUrl = thumbFile ? `uploads/${thumbFile.filename}` : null;
+        let fileUrl = `/uploads/${mainFile.filename}`;
+        let thumbnailUrl = thumbFile ? `/uploads/${thumbFile.filename}` : null;
+
+        // Since we rename array of URLs, we feed it an array of 1 or 2 items
+        const urlsToRename = [fileUrl];
+        if (thumbnailUrl) urlsToRename.push(thumbnailUrl);
+
+        const renamedUrls = renameMediaToSeoFriendly(urlsToRename, evtRows[0].event_name);
+        fileUrl = renamedUrls[0];
+        if (thumbnailUrl) thumbnailUrl = renamedUrls[1];
 
         const [result] = await db.query(
             'INSERT INTO event_media (event_id, media_type, file_url, thumbnail_url, caption) VALUES (?, ?, ?, ?, ?)',

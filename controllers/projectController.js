@@ -381,7 +381,8 @@ export const createProject = async (req, res) => {
             slug = `${baseSlug}-${counter++}`;
         }
 
-        const imagesJson = JSON.stringify(Array.isArray(images) ? images : []);
+        const seoImages = renameMediaToSeoFriendly(images, title);
+        const imagesJson = JSON.stringify(Array.isArray(seoImages) ? seoImages : []);
         const videosJson = JSON.stringify(Array.isArray(videos) ? videos : []);
         const [result] = await db.query(
             `INSERT INTO projects (title, slug, description, project_content, images, videos, tags, year, sector_id, local_body_id, display_order, is_active)
