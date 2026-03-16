@@ -721,3 +721,38 @@ export const getImagesBySource = async (req, res) => {
     }
 };
 
+// ─────────────────────────────────────────────────────────────
+//  GET /api/gallery/filter-options
+//  Public — returns distinct years from events, projects and programs
+// ─────────────────────────────────────────────────────────────
+export const getGalleryFilterOptions = async (req, res) => {
+    try {
+        const [eventYears] = await db.query(
+            `SELECT DISTINCT YEAR(event_date) AS year FROM events WHERE event_date IS NOT NULL`
+        );
+        const [projectYears] = await db.query(
+            `SELECT DISTINCT COALESCE(year, YEAR(created_at)) AS year FROM projects WHERE is_active = 1`
+        );
+        const [programYears] = await db.query(
+            `SELECT DISTINCT YEAR(created_at) AS year FROM programs WHERE created_at IS NOT NULL`
+        );
+
+        const eventYrs = [...new Set(eventYears.map(r => r.year).filter(Boolean))].sort((a, b) => b - a);
+        const projectYrs = [...new Set(projectYears.map(r => r.year).filter(Boolean))].sort((a, b) => b - a);
+        const programYrs = [...new Set(programYears.map(r => r.year).filter(Boolean))].sort((a, b) => b - a);
+
+        const allYears = [...new Set([...eventYrs, ...projectYrs, ...programYrs])].sort((a, b) => b - a);
+
+        return successResponse(res, { 
+            years: allYears,
+            eventYears: eventYrs,
+            projectYears: projectYrs,
+            programYears: programYrs
+        }, 'Filter options fetched.');
+    } catch (err) {
+        console.error('[getGalleryFilterOptions]', err);
+        return errorResponse(res, 'Server error fetching filter options.');
+    }
+};
+
+

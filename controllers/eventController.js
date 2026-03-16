@@ -47,7 +47,7 @@ export const getAllEvents = async (req, res) => {
         const limit = Math.min(50, parseInt(req.query.limit) || 10);
         const offset = (page - 1) * limit;
 
-        const { status, event_type_id, local_body_id, sector_id, search } = req.query;
+        const { status, event_type_id, local_body_id, sector_id, search, year } = req.query;
 
         let where = 'WHERE 1=1';
         const params = [];
@@ -57,6 +57,7 @@ export const getAllEvents = async (req, res) => {
         if (local_body_id) { where += ' AND e.local_body_id = ?'; params.push(local_body_id); }
         if (sector_id) { where += ' AND e.sector_id = ?'; params.push(sector_id); }
         if (search) { where += ' AND e.event_name LIKE ?'; params.push(`%${search}%`); }
+        if (year) { where += ' AND YEAR(e.event_date) = ?'; params.push(year); }
 
         const [[{ total }]] = await db.query(
             `SELECT COUNT(*) AS total FROM events e ${where}`, params

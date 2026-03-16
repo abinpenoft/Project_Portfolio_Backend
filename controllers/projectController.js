@@ -277,6 +277,7 @@ export const searchPublicProjects = async (req, res) => {
         const limit = Math.min(50, parseInt(req.query.limit) || 12);
         const offset = (page - 1) * limit;
         const search = req.query.q || req.query.search || '';
+        const { sector_id, local_body_id, year } = req.query;
 
         const conditions = ['p.is_active = 1'];
         const vals = [];
@@ -285,6 +286,9 @@ export const searchPublicProjects = async (req, res) => {
             conditions.push('(p.title LIKE ? OR p.tags LIKE ?)');
             vals.push(`%${search}%`, `%${search}%`);
         }
+        if (sector_id) { conditions.push('p.sector_id = ?'); vals.push(sector_id); }
+        if (local_body_id) { conditions.push('p.local_body_id = ?'); vals.push(local_body_id); }
+        if (year) { conditions.push('(p.year = ? OR YEAR(p.created_at) = ?)'); vals.push(year, year); }
 
         const where = `WHERE ${conditions.join(' AND ')}`;
 
