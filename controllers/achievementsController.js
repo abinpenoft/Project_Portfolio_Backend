@@ -1,5 +1,18 @@
 import pool from '../configs/db.js';
 import { successResponse, errorResponse } from '../utils/helpers.js';
+import fs from 'fs';
+import path from 'path';
+
+// Generate an SEO-friendly slug from a string
+const slugify = (text) =>
+    text
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .slice(0, 80);
 
 // ─────────────────────────────────────────────────────────────
 //  GET /api/achievements
@@ -64,7 +77,15 @@ export const createAchievement = async (req, res) => {
             idx = maxIdx + 1;
         }
 
-        const iconUrl = req.file ? `/uploads/ente-nadu-icons/${req.file.filename}` : null;
+        let iconUrl = null;
+        if (req.file) {
+            const ext = path.extname(req.file.originalname) || '.jpg';
+            const seoName = `shibu-kothamangalam-achievement-${slugify(title.trim())}${ext}`;
+            const newPath = path.join(path.dirname(req.file.path), seoName);
+            if (fs.existsSync(newPath)) fs.unlinkSync(newPath);
+            fs.renameSync(req.file.path, newPath);
+            iconUrl = `/uploads/ente-nadu-icons/${seoName}`;
+        }
 
         const [result] = await pool.query(
             'INSERT INTO achievements (title, description, icon_url, order_index) VALUES (?, ?, ?, ?)',
@@ -95,7 +116,12 @@ export const updateAchievement = async (req, res) => {
 
         let iconUrl = existing.icon_url;
         if (req.file) {
-            iconUrl = `/uploads/ente-nadu-icons/${req.file.filename}`;
+            const ext = path.extname(req.file.originalname) || '.jpg';
+            const seoName = `shibu-kothamangalam-achievement-${slugify(title.trim())}${ext}`;
+            const newPath = path.join(path.dirname(req.file.path), seoName);
+            if (fs.existsSync(newPath)) fs.unlinkSync(newPath);
+            fs.renameSync(req.file.path, newPath);
+            iconUrl = `/uploads/ente-nadu-icons/${seoName}`;
         } else if (req.body.icon_url === null || req.body.icon_url === 'null') {
             iconUrl = null;
         }
