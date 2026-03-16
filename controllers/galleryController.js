@@ -711,8 +711,47 @@ export const getImagesBySource = async (req, res) => {
 
             return successResponse(res, { data: { media: formattedMedia, display_name: post.title } }, 'Media fetched successfully by post.');
 
+        } else if (type === 'program') {
+            const params = [];
+            let whereClause = '';
+
+            if (slug) {
+                whereClause = 'slug = ?';
+                params.push(slug);
+            } else if (name) {
+                whereClause = 'title = ?';
+                params.push(name);
+            }
+
+            // 1. Get Program first
+            const [progRows] = await db.query(`SELECT id, title, slug FROM programs WHERE ${whereClause} LIMIT 1`, params);
+            if (!progRows.length) {
+                return successResponse(res, { data: { media: [], display_name: 'Program' } }, 'Program not found.');
+            }
+
+            const program = progRows[0];
+            
+            // 2. Get Media for that program
+            const [mediaRows] = await db.query(
+                `SELECT id, file_url, thumbnail_url, caption, created_at, media_type
+                 FROM program_media 
+                 WHERE program_id = ? AND media_type IN ('photo', 'video')
+                 ORDER BY created_at DESC`,
+                [program.id]
+            );
+
+            const formattedMedia = mediaRows.map(item => ({
+                id: item.id,
+                file_url: item.file_url,
+                thumbnail_url: item.thumbnail_url,
+                media_type: item.media_type,
+                caption: item.caption || program.title
+            }));
+
+            return successResponse(res, { data: { media: formattedMedia, display_name: program.title } }, 'Media fetched successfully by program.');
+
         } else {
-            return errorResponse(res, 'Invalid type parameter. Use event, project, or post.', 400);
+            return errorResponse(res, 'Invalid type parameter. Use event, project, post, or program.', 400);
         }
 
     } catch (err) {
