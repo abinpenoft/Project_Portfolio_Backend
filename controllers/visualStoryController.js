@@ -2,6 +2,7 @@ import db from '../configs/db.js';
 import { uploadVisualStoryFiles, runMulter } from '../configs/multer.js';
 import fs from 'fs';
 import path from 'path';
+import { renameMediaToSeoFriendly } from '../utils/helpers.js';
 
 // @desc    Get all visual stories
 // @route   GET /api/visual-stories
@@ -33,11 +34,14 @@ export const createStory = async (req, res) => {
         let thumbnail_url = null;
 
         if (req.files) {
-            if (req.files.video && req.files.video.length > 0) {
-                final_video_url = `/uploads/${req.files.video[0].filename}`;
-            }
-            if (req.files.thumbnail && req.files.thumbnail.length > 0) {
-                thumbnail_url = `/uploads/${req.files.thumbnail[0].filename}`;
+            const urlsToRename = [];
+            if (req.files.video && req.files.video.length > 0) urlsToRename.push(`/uploads/${req.files.video[0].filename}`);
+            if (req.files.thumbnail && req.files.thumbnail.length > 0) urlsToRename.push(`/uploads/${req.files.thumbnail[0].filename}`);
+
+            if (urlsToRename.length > 0) {
+                const renamedUrls = renameMediaToSeoFriendly(urlsToRename, title);
+                if (req.files.video && req.files.video.length > 0) final_video_url = renamedUrls.shift();
+                if (req.files.thumbnail && req.files.thumbnail.length > 0) thumbnail_url = renamedUrls.shift();
             }
         }
 
@@ -89,21 +93,32 @@ export const updateStory = async (req, res) => {
         }
 
         if (req.files) {
+            let tempVideoUrl = null;
+            let tempThumbUrl = null;
+
             if (req.files.video && req.files.video.length > 0) {
-                final_video_url = `/uploads/${req.files.video[0].filename}`;
-                // Optionally delete old video if it was an upload
+                tempVideoUrl = `/uploads/${req.files.video[0].filename}`;
                 if (story.video_type === 'upload' && story.video_url) {
                     const oldPath = path.join(process.cwd(), story.video_url);
                     if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
                 }
             }
             if (req.files.thumbnail && req.files.thumbnail.length > 0) {
-                final_thumbnail_url = `/uploads/${req.files.thumbnail[0].filename}`;
-                // Delete old thumbnail
+                tempThumbUrl = `/uploads/${req.files.thumbnail[0].filename}`;
                 if (story.thumbnail_url) {
                     const oldPath = path.join(process.cwd(), story.thumbnail_url);
                     if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
                 }
+            }
+
+            const urlsToRename = [];
+            if (tempVideoUrl) urlsToRename.push(tempVideoUrl);
+            if (tempThumbUrl) urlsToRename.push(tempThumbUrl);
+
+            if (urlsToRename.length > 0) {
+                const renamedUrls = renameMediaToSeoFriendly(urlsToRename, title || story.title);
+                if (tempVideoUrl) final_video_url = renamedUrls.shift();
+                if (tempThumbUrl) final_thumbnail_url = renamedUrls.shift();
             }
         }
 

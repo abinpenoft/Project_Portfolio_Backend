@@ -90,14 +90,16 @@ export const updatePillar = async (req, res) => {
     title = capitalizeFirstLetter(title);
     description = capitalizeFirstLetter(description);
     try {
-        const [oldRows] = await pool.query('SELECT image_url FROM core_vision_pillars WHERE id = ?', [id]);
+        const [oldRows] = await pool.query('SELECT image_url, order_index FROM core_vision_pillars WHERE id = ?', [id]);
         if (oldRows.length && oldRows[0].image_url && oldRows[0].image_url !== image_url) {
             deleteFile(oldRows[0].image_url);
         }
 
+        const finalOrderIndex = order_index !== undefined ? order_index : (oldRows.length ? oldRows[0].order_index : 0);
+
         await pool.query(
             'UPDATE core_vision_pillars SET title = ?, description = ?, image_url = ?, order_index = ? WHERE id = ?',
-            [title, description, image_url, order_index, id]
+            [title, description, image_url, finalOrderIndex, id]
         );
         return successResponse(res, {}, 'Pillar updated successfully');
     } catch (err) {

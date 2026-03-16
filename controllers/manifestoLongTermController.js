@@ -18,8 +18,8 @@ export const getCommitments = async (req, res) => {
 
         if (search) {
             const like = `%${search}%`;
-            where += ' AND (title LIKE ? OR description LIKE ?)';
-            params.push(like, like);
+            where += ' AND title LIKE ?';
+            params.push(like);
         }
 
         const [[{ total }]] = await pool.query(
@@ -27,8 +27,13 @@ export const getCommitments = async (req, res) => {
         );
 
         const [rows] = await pool.query(
-            `SELECT * FROM manifesto_long_term_commitments ${where} ORDER BY order_index ASC LIMIT ? OFFSET ?`,
-            [...params, limit, offset]
+            `SELECT *, 
+                (title = ?) AS is_exact, 
+                (title LIKE ?) AS starts_with 
+             FROM manifesto_long_term_commitments ${where} 
+             ORDER BY is_exact DESC, starts_with DESC, order_index ASC 
+             LIMIT ? OFFSET ?`,
+            [search || '', `${search || ''}%`, ...params, limit, offset]
         );
 
         return successResponse(res, {
