@@ -343,15 +343,23 @@ export const createPost = async (req, res) => {
         if (!secRows.length) return errorResponse(res, 'Section not found.', 404);
 
         const slug = slugify(title);
-
         const seoImages = renameMediaToSeoFriendly(images, title);
+
+        // SYNC THUMBNAIL: If thumbnail_url matches one of the original images, update it to the renamed version
+        let finalThumb = thumbnail_url;
+        if (thumbnail_url && Array.isArray(images) && images.includes(thumbnail_url)) {
+            const index = images.indexOf(thumbnail_url);
+            if (seoImages[index]) {
+                finalThumb = seoImages[index];
+            }
+        }
 
         const [result] = await db.query(
             `INSERT INTO media_posts (section_id, title, slug, author, content, rich_content, thumbnail_url, video_url, images, videos, is_featured, published_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 section_id, title, slug, author || 'Office of Shibu Theckumpuram', content || null, rich_content || null,
-                thumbnail_url || null, video_url || null,
+                finalThumb || null, video_url || null,
                 JSON.stringify(Array.isArray(seoImages) ? seoImages : []),
                 JSON.stringify(videos),
                 is_featured ? 1 : 0,
@@ -381,8 +389,16 @@ export const updatePost = async (req, res) => {
         if (!section_id || !title) return errorResponse(res, 'section_id and title are required.', 400);
 
         const slug = slugify(title);
-
         const seoImages = renameMediaToSeoFriendly(images, title);
+
+        // SYNC THUMBNAIL: If thumbnail_url matches one of the original images, update it to the renamed version
+        let finalThumb = thumbnail_url;
+        if (thumbnail_url && Array.isArray(images) && images.includes(thumbnail_url)) {
+            const index = images.indexOf(thumbnail_url);
+            if (seoImages[index]) {
+                finalThumb = seoImages[index];
+            }
+        }
 
         const [result] = await db.query(
             `UPDATE media_posts SET
@@ -391,7 +407,7 @@ export const updatePost = async (req, res) => {
        WHERE id = ?`,
             [
                 section_id, title, slug, author || 'Office of Shibu Theckumpuram', content || null, rich_content || null,
-                thumbnail_url || null, video_url || null,
+                finalThumb || null, video_url || null,
                 JSON.stringify(Array.isArray(seoImages) ? seoImages : []),
                 JSON.stringify(videos),
                 is_featured ? 1 : 0,
