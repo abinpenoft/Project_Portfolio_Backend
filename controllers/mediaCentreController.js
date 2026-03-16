@@ -1,5 +1,5 @@
 import db from '../configs/db.js';
-import { successResponse, errorResponse, slugify } from '../utils/helpers.js';
+import { successResponse, errorResponse, slugify, renameMediaToSeoFriendly } from '../utils/helpers.js';
 import { uploadMedia, uploadImage, runMulter } from '../configs/multer.js';
 import fs from 'fs';
 import path from 'path';
@@ -344,13 +344,15 @@ export const createPost = async (req, res) => {
 
         const slug = slugify(title);
 
+        const seoImages = renameMediaToSeoFriendly(images, title);
+
         const [result] = await db.query(
             `INSERT INTO media_posts (section_id, title, slug, author, content, rich_content, thumbnail_url, video_url, images, videos, is_featured, published_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 section_id, title, slug, author || 'Office of Shibu Theckumpuram', content || null, rich_content || null,
                 thumbnail_url || null, video_url || null,
-                JSON.stringify(images),
+                JSON.stringify(Array.isArray(seoImages) ? seoImages : []),
                 JSON.stringify(videos),
                 is_featured ? 1 : 0,
                 published_at || new Date().toISOString().slice(0, 19).replace('T', ' '),
@@ -380,6 +382,8 @@ export const updatePost = async (req, res) => {
 
         const slug = slugify(title);
 
+        const seoImages = renameMediaToSeoFriendly(images, title);
+
         const [result] = await db.query(
             `UPDATE media_posts SET
          section_id = ?, title = ?, slug = ?, author = ?, content = ?, rich_content = ?,
@@ -388,7 +392,7 @@ export const updatePost = async (req, res) => {
             [
                 section_id, title, slug, author || 'Office of Shibu Theckumpuram', content || null, rich_content || null,
                 thumbnail_url || null, video_url || null,
-                JSON.stringify(images),
+                JSON.stringify(Array.isArray(seoImages) ? seoImages : []),
                 JSON.stringify(videos),
                 is_featured ? 1 : 0,
                 published_at || new Date().toISOString().slice(0, 19).replace('T', ' '),

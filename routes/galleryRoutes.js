@@ -5,6 +5,7 @@ import {
     listAdminMedia, deleteEventMedia,
     getImagesByLocalBody, getImagesBySector, getImagesByYear, searchImages, getImagesBySource,
     getVideosByLocalBody, getVideosBySector, getVideosByYear, searchVideos,
+    getGalleryFilterOptions,
 } from '../controllers/galleryController.js';
 import { verifyToken } from '../middlewares/auth.js';
 
@@ -13,6 +14,7 @@ const router = express.Router();
 // ── Public: existing grouped gallery ──────────────────────────
 router.get('/images', getGalleryImages);
 router.get('/videos', getGalleryVideos);
+router.get('/filter-options', getGalleryFilterOptions);
 
 // ── Public: images filter & search ────────────────────────────
 router.get('/images/source', getImagesBySource);

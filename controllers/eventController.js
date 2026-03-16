@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import db from '../configs/db.js';
 import transporter from '../configs/mailer.js';
 import { uploadMedia, uploadMediaFields, uploadImage, uploadThumbnail, runMulter } from '../configs/multer.js';
-import { successResponse, errorResponse, slugify } from '../utils/helpers.js';
+import { successResponse, errorResponse, slugify, renameMediaToSeoFriendly } from '../utils/helpers.js';
 
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -47,7 +47,7 @@ export const getAllEvents = async (req, res) => {
         const limit = Math.min(50, parseInt(req.query.limit) || 10);
         const offset = (page - 1) * limit;
 
-        const { status, event_type_id, local_body_id, sector_id, search } = req.query;
+        const { status, event_type_id, local_body_id, sector_id, search, year } = req.query;
 
         let where = 'WHERE 1=1';
         const params = [];
@@ -57,6 +57,7 @@ export const getAllEvents = async (req, res) => {
         if (local_body_id) { where += ' AND e.local_body_id = ?'; params.push(local_body_id); }
         if (sector_id) { where += ' AND e.sector_id = ?'; params.push(sector_id); }
         if (search) { where += ' AND e.event_name LIKE ?'; params.push(`%${search}%`); }
+        if (year) { where += ' AND YEAR(e.event_date) = ?'; params.push(year); }
 
         const [[{ total }]] = await db.query(
             `SELECT COUNT(*) AS total FROM events e ${where}`, params
@@ -586,15 +587,23 @@ export const addEventMedia = async (req, res) => {
             return errorResponse(res, 'media_type must be "photo" or "video".', 400);
 
         // Check event exists
-        const [evtRows] = await db.query('SELECT id FROM events WHERE id = ?', [id]);
+        const [evtRows] = await db.query('SELECT id, event_name FROM events WHERE id = ?', [id]);
         if (!evtRows.length) {
             fs.unlinkSync(mainFile.path);
             if (thumbFile) fs.unlinkSync(thumbFile.path);
             return errorResponse(res, 'Event not found.', 404);
         }
 
-        const fileUrl = `uploads/${mainFile.filename}`;
-        const thumbnailUrl = thumbFile ? `uploads/${thumbFile.filename}` : null;
+        let fileUrl = `/uploads/${mainFile.filename}`;
+        let thumbnailUrl = thumbFile ? `/uploads/${thumbFile.filename}` : null;
+
+        // Since we rename array of URLs, we feed it an array of 1 or 2 items
+        const urlsToRename = [fileUrl];
+        if (thumbnailUrl) urlsToRename.push(thumbnailUrl);
+
+        const renamedUrls = renameMediaToSeoFriendly(urlsToRename, evtRows[0].event_name);
+        fileUrl = renamedUrls[0];
+        if (thumbnailUrl) thumbnailUrl = renamedUrls[1];
 
         const [result] = await db.query(
             'INSERT INTO event_media (event_id, media_type, file_url, thumbnail_url, caption) VALUES (?, ?, ?, ?, ?)',
