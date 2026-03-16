@@ -1,0 +1,46 @@
+{
+  "success": true,
+  "message": "Programs fetched successfully.",
+  "data": [
+    {
+      "id": 6,
+      "title": "test",
+      "slug": "test",
+      "description": "test",
+      "created_at": "2026-03-16T12:58:32.000Z",
+      "updated_at": "2026-03-16T12:58:32.000Z",
+      "media": [
+        {
+          "id": 14,
+          "program_id": 6,
+          "media_type": "photo",
+          "file_url": "/uploads/test.webp",
+          "thumbnail_url": null,
+          "caption": null,
+          "order_index": 0,
+          "created_at": "2026-03-16T12:58:48.000Z"
+        },
+        {
+          "id": 15,
+          "program_id": 6,
+          "media_type": "photo",
+          "file_url": "/uploads/test.jpg",
+          "thumbnail_url": null,
+          "caption": null,
+          "order_index": 0,
+          "created_at": "2026-03-16T12:58:56.000Z"
+        },
+        {
+          "id": 16,
+          "program_id": 6,
+          "media_type": "photo",
+          "file_url": "/uploads/test.jpg",
+          "thumbnail_url": null,
+          "caption": null,
+          "order_index": 0,
+          "created_at": "2026-03-16T15:17:03.000Z"
+        }
+      ]
+    }
+  ]
+}

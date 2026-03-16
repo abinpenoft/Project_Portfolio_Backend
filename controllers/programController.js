@@ -7,13 +7,40 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Get all programs
+// Get all programs with pagination, search, and media
 export const getAllPrograms = async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM programs ORDER BY created_at DESC');
-        
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(200, parseInt(req.query.limit) || 10);
+        const offset = (page - 1) * limit;
+        const { search, year } = req.query;
+
+        let where = 'WHERE 1=1';
+        const params = [];
+
+        if (search) {
+            where += ' AND (title LIKE ? OR description LIKE ?)';
+            params.push(`%${search}%`, `%${search}%`);
+        }
+        if (year) {
+            where += ' AND YEAR(created_at) = ?';
+            params.push(year);
+        }
+
+        // Get total count
+        const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM programs ${where}`, params);
+
+        // Get paginated programs
+        const [rows] = await db.query(
+            `SELECT * FROM programs ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+            [...params, limit, offset]
+        );
+
         if (rows.length === 0) {
-            return successResponse(res, { data: [] }, 'Programs fetched successfully.');
+            return successResponse(res, { 
+                data: [],
+                pagination: { total: 0, page, limit, totalPages: 0 }
+            }, 'Programs fetched successfully.');
         }
 
         const programIds = rows.map(p => p.id);
@@ -28,12 +55,28 @@ export const getAllPrograms = async (req, res) => {
             return acc;
         }, {});
 
-        const data = rows.map(program => ({
-            ...program,
-            media: mediaByProgram[program.id] || []
-        }));
+        const data = rows.map(program => {
+            const media = mediaByProgram[program.id] || [];
+            // Pick first photo as cover_image, otherwise first media, otherwise null
+            const firstPhoto = media.find(m => m.media_type === 'photo');
+            const coverImage = firstPhoto ? firstPhoto.file_url : (media.length > 0 ? (media[0].thumbnail_url || media[0].file_url) : null);
 
-        return successResponse(res, { data }, 'Programs fetched successfully.');
+            return {
+                ...program,
+                cover_image: coverImage,
+                media: media
+            };
+        });
+
+        return successResponse(res, { 
+            data,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        }, 'Programs fetched successfully.');
     } catch (err) {
         console.error('[getAllPrograms]', err);
         return errorResponse(res, 'Server error fetching programs.');
@@ -45,11 +88,11 @@ export const getProgramById = async (req, res) => {
     try {
         const { id } = req.params;
         const [rows] = await db.query('SELECT * FROM programs WHERE id = ?', [id]);
-        
+
         if (!rows.length) return errorResponse(res, 'Program not found.', 404);
-        
+
         const [media] = await db.query('SELECT * FROM program_media WHERE program_id = ? ORDER BY order_index ASC', [id]);
-        
+
         return successResponse(res, {
             data: {
                 ...rows[0],
@@ -67,12 +110,12 @@ export const getProgramBySlug = async (req, res) => {
     try {
         const { slug } = req.params;
         const [rows] = await db.query('SELECT * FROM programs WHERE slug = ?', [slug]);
-        
+
         if (!rows.length) return errorResponse(res, 'Program not found.', 404);
-        
+
         const programId = rows[0].id;
         const [media] = await db.query('SELECT * FROM program_media WHERE program_id = ? ORDER BY order_index ASC', [programId]);
-        
+
         return successResponse(res, {
             data: {
                 ...rows[0],
@@ -160,11 +203,11 @@ export const deleteProgram = async (req, res) => {
 
         // Fetch media to delete files
         const [media] = await db.query('SELECT file_url, thumbnail_url FROM program_media WHERE program_id = ?', [id]);
-        
+
         for (const item of media) {
             const filePath = path.join(__dirname, '..', item.file_url);
             if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-            
+
             if (item.thumbnail_url) {
                 const thumbPath = path.join(__dirname, '..', item.thumbnail_url);
                 if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
@@ -234,7 +277,7 @@ export const deleteProgramMedia = async (req, res) => {
         const item = rows[0];
         const filePath = path.join(__dirname, '..', item.file_url);
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-        
+
         if (item.thumbnail_url) {
             const thumbPath = path.join(__dirname, '..', item.thumbnail_url);
             if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
