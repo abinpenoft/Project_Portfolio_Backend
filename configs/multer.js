@@ -22,7 +22,7 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
     const allowed = [
         'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml',
-        'video/mp4', 'video/webm', 'video/quicktime',
+        'video/mp4', 'video/webm', 'video/quicktime', 'application/pdf',
     ];
     if (allowed.includes(file.mimetype)) {
         cb(null, true);
@@ -30,6 +30,12 @@ const fileFilter = (req, file, cb) => {
         cb(new Error(`File type not allowed: ${file.mimetype}`), false);
     }
 };
+
+export const uploadDocument = multer({
+    storage,
+    fileFilter,
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB for PDFs
+}).single('file');
 
 // ─── File type filter for icons (SVG, PNG, etc) ──────────────
 const iconFileFilter = (req, file, cb) => {

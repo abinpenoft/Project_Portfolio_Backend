@@ -1,5 +1,6 @@
 import db from '../configs/db.js';
 import { successResponse, errorResponse } from '../utils/helpers.js';
+import { runMulter, uploadDocument } from '../configs/multer.js';
 
 // Get all settings
 export const getAllSettings = async (req, res) => {
@@ -54,5 +55,30 @@ export const updateSettings = async (req, res) => {
     } catch (err) {
         console.error('[updateSettings]', err);
         return errorResponse(res, 'Server error updating settings.');
+    }
+};
+
+// Upload Manifesto PDF and update settings
+export const uploadManifestoPDF = async (req, res) => {
+    try {
+        await runMulter(uploadDocument, req, res);
+
+        if (!req.file) {
+            return errorResponse(res, 'No file uploaded.', 400);
+        }
+
+        const pdfUrl = `/uploads/${req.file.filename}`;
+        
+        // Update or Insert the manifesto_pdf_url setting
+        await db.query(`
+            INSERT INTO site_settings (setting_key, setting_value, description)
+            VALUES ('manifesto_pdf_url', ?, 'URL to the downloadable Manifesto PDF')
+            ON DUPLICATE KEY UPDATE setting_value = ?, updated_at = CURRENT_TIMESTAMP
+        `, [pdfUrl, pdfUrl]);
+
+        return successResponse(res, { url: pdfUrl }, 'Manifesto PDF uploaded and updated successfully.');
+    } catch (err) {
+        console.error('[uploadManifestoPDF]', err);
+        return errorResponse(res, err.message || 'Server error uploading Manifesto PDF.');
     }
 };
